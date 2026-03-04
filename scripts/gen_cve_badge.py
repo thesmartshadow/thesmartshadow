@@ -9,9 +9,6 @@ BADGE_FILE = ROOT / "data" / "cve_badge.json"
 META_FILE = ROOT / "data" / "cve.json"
 
 def main():
-    if not CVES_FILE.exists():
-        raise SystemExit(f"Missing {CVES_FILE}")
-
     cves = []
     for line in CVES_FILE.read_text(encoding="utf-8").splitlines():
         line = line.strip()
@@ -22,7 +19,6 @@ def main():
     count = len(cves)
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-    # Shields "endpoint" schema
     badge = {
         "schemaVersion": 1,
         "label": "CVEs",
@@ -31,17 +27,14 @@ def main():
     }
 
     meta = {
-        "cves": cves,
         "count": count,
-        "last_updated_utc": now
+        "last_updated_utc": now,
+        "cves": cves
     }
 
     BADGE_FILE.parent.mkdir(parents=True, exist_ok=True)
     BADGE_FILE.write_text(json.dumps(badge, indent=2) + "\n", encoding="utf-8")
     META_FILE.write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
-
-    print(f"Generated: {BADGE_FILE} (count={count})")
-    print(f"Generated: {META_FILE}")
 
 if __name__ == "__main__":
     main()
