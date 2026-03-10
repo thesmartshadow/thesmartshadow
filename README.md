@@ -25,6 +25,8 @@ Theme: Clean Cyberpunk (stable widgets)
 </div>
 
 ---
+## Security Researcher
+HackerOne: https://hackerone.com/thesmartshadow
 
 ## 🧠 About
 
