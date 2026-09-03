@@ -6,7 +6,7 @@
 
 I audit open-source software, reproduce security flaws, work with maintainers on remediation, and follow issues through fixes, regression coverage, advisories, releases, and downstream distribution updates.
 
-[GitHub Advisories](https://github.com/advisories?query=credit%3Athesmartshadow) · [HackerOne](https://hackerone.com/thesmartshadow) · [LinkedIn](https://www.linkedin.com/in/ali-shmery/) · [MSRC Special Recognition](https://msrc.microsoft.com/special-mention)
+[GitHub Advisories](https://github.com/advisories?query=credit%3Athesmartshadow) · [HackerOne](https://hackerone.com/thesmartshadow) · [LinkedIn](https://www.linkedin.com/in/ali-shmery/) · [MSRC Special Recognition](https://msrc.microsoft.com/special-mention) · [GitLab](https://gitlab.com/thesmartshadow)
 
 </div>
 
