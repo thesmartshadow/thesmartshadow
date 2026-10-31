@@ -61,10 +61,6 @@ The table contains 39 CVE records from the current research ledger. It is not a 
 | [GO-2026-4950](https://pkg.go.dev/vuln/GO-2026-4950) | fasthttp | Official Go Vulnerability Database credit to Ali Firas, with upstream fix in 1.70.0; **not a CVE**. |
 | [GHSA-hfq4-89cf-8p8j](https://github.com/cisagov/manage.get.gov/security/advisories/GHSA-hfq4-89cf-8p8j) | CISA manage.get.gov | Security advisory and authorization fix; **not counted as a CVE**. |
 
-## Withdrawn identifier
-
-[CVE-2026-82455](https://www.cve.org/CVERecord?id=CVE-2026-82455) was rejected after RubyGems maintainers declined the security classification. The code change in [RubyGems #9493](https://github.com/ruby/rubygems/pull/9493) was merged. I'm not counting the withdrawn identifier as a published vulnerability.
-
 ## Notes on credit
 
 OpenSSL [CVE-2026-35191](https://openssl-library.org/news/secadv/20260929.txt) records my report and a later independent report by Nikolas Gauder. Neil Horman wrote the fix. I did not write the upstream OpenSSL patch.
