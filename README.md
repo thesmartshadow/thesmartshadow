@@ -38,17 +38,16 @@ A stalled write could leave stale buffer state in the gzip output path. A later 
 
 **Cloudflare Pingora, `Connection` header handling.** [CVE-2026-105299](https://github.com/cloudflare/pingora/security/advisories/GHSA-vx4q-2c55-cvmg)
 
-In a particular chained HTTP/1 proxy arrangement, client-nominated hop-by-hop headers could strip a header the downstream service relied on for authorization. The issue depends on that deployment and trust relationship. Cloudflare's [advisory](https://github.com/cloudflare/pingora/security/advisories/GHSA-vx4q-2c55-cvmg) credits the report and says Cloudflare CDN customers were not affected.
+In a particular chained HTTP/1 proxy arrangement, client-nominated hop-by-hop headers could strip a header the downstream service relied on for authorization. The issue depends on that deployment and trust relationship. Cloudflare's [advisory](https://github.com/cloudflare/pingora/security/advisories/GHSA-vx4q-2c55-cvmg)
 
 **vm2, Node.js sandbox escape.** [CVE-2026-92956](https://github.com/advisories/GHSA-wjwh-qqvp-g4p4)
 
-A host-realm Promise exposed by a WebAssembly streaming path could cross vm2's sandbox boundary through `finally` and `Symbol.species` handling. Reproduced under the affected Node.js 26 setup. Co-reported with `zolbooo`.
-
+A host-realm Promise exposed by a WebAssembly streaming path could cross vm2's sandbox boundary through `finally` and `Symbol.species` handling. Reproduced under the affected Node.js 26
 **Memory safety in rust-openssl and libheif.** [CVE-2026-45784](https://github.com/advisories/GHSA-phqj-4mhp-q6mq) / [CVE-2026-62291](https://github.com/strukturag/libheif/security/advisories/GHSA-xpw3-9rhw-482x)
 
 The first is an out-of-bounds write in the Rust OpenSSL binding's `CipherCtxRef::cipher_update_inplace` path for AES-KW-PAD. It is separate from the OpenSSL QUIC report. The second is a heap out-of-bounds write in libheif's uncompressed encoder caused by inconsistent component-plane dimensions. Ubuntu credits my libheif report in [USN-8683-1](https://ubuntu.com/security/notices/USN-8683-1) and [USN-8774-1](https://ubuntu.com/security/notices/USN-8774-1).
 
-Other reports include [CoreDNS](https://github.com/coredns/coredns/security/advisories/GHSA-63cw-r7xf-jmwr) (DoH resource amplification), [cpp-httplib](https://github.com/yhirose/cpp-httplib/security/advisories/GHSA-xvfx-w463-6fpp) (gzip payload limit bypass), [CISA manage.get.gov](https://github.com/cisagov/manage.get.gov/security/advisories/GHSA-hfq4-89cf-8p8j) (organization-member authorization), [xmldom](https://github.com/xmldom/xmldom/security/advisories/GHSA-wh4c-j3r5-mjhp) (CDATA serialization), and [fasthttp](https://pkg.go.dev/vuln/GO-2026-4950) (double-decoded file paths). The fasthttp report has a Go vulnerability ID and a maintainer fix, but no CVE in the record cited here.
+Other reports include [CoreDNS](https://github.com/coredns/coredns/security/advisories/GHSA-63cw-r7xf-jmwr) (DoH resource amplification), [cpp-httplib](https://github.com/yhirose/cpp-httplib/security/advisories/GHSA-xvfx-w463-6fpp) (gzip payload limit bypass), [CISA manage.get.gov](https://github.com/cisagov/manage.get.gov/security/advisories/GHSA-hfq4-89cf-8p8j) (organization-member authorization), [xmldom](https://github.com/xmldom/xmldom/security/advisories/GHSA-wh4c-j3r5-mjhp) (CDATA serialization), and [fasthttp](https://pkg.go.dev/vuln/GO-2026-4950) (double-decoded file paths). The fasthttp report has a Go vulnerability ID and a maintainer fix
 
 The rest is in the [research index](RESEARCH-INDEX.md).
 
