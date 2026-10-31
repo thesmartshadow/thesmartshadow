@@ -2,7 +2,7 @@
 
 **Cut-off:** 2026-10-31. This is a curated index assembled from original maintainer advisories, CNA records, distribution notices, and previously archived research. A record is listed by its publicly published identifier; inclusion is not an assertion that the researcher wrote the vendor's patch, or that every listed downstream product is exploitable.
 
-**Do not use this table as a live CVE counter.** A complete published-CVE reconciliation requires regular checks against CVE states (PUBLISHED vs REJECTED) and attribution. This working index contains **39 distinct published CVE leads** from the evidence reviewed, excluding the explicitly rejected RubyGems ID. For externally communicated metrics, verify all 39 records again against their source before displaying an exact total. See [EVIDENCE-REGISTER.md](EVIDENCE-REGISTER.md) for evidence quality and exact update classifications.
+**Do not use this table as a live CVE counter.** A complete published-CVE reconciliation requires regular checks against CVE states PUBLISHED and attribution. This working index contains **39 distinct published CVE leads** from the evidence reviewed, excluding the explicitly rejected RubyGems ID. For externally communicated metrics, verify all 39 records again against their source before displaying an exact total. See [EVIDENCE-REGISTER.md](EVIDENCE-REGISTER.md) for evidence quality and exact update classifications.
 
 ## 2026
 
