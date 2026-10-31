@@ -4,8 +4,7 @@ Ali Firas / `thesmartshadow`
 
 This is my published work, indexed by project and identifier. The brief descriptions tell you where the check failed. The links go to the advisory, original report or upstream change.
 
-The table contains 39 CVE records from the current research ledger. It is not a live counter, and it should not be read as a claim that I wrote every vendor fix. I've left the rejected RubyGems CVE out. [Patch history and distro notices](EVIDENCE-REGISTER.md) are kept separately.
-
+The table contains 39 CVE records from the current research ledger. It is not a live counter, and it should not be read as a claim that I wrote every vendor fix.
 ## 2026
 
 | CVE | Project | Specific failure mode | Source / attribution trail |
