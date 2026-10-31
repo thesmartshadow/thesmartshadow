@@ -1,17 +1,20 @@
-# Source and patch record - Ali Firas (thesmartshadow)
+# Source notes
 
-**Evidence cut-off:** 2026-10-31. Original notices and upstream identity were rechecked for OpenSSL, cpp-httplib, fasthttp, libheif, Linux, and Chrome. Other rows retain the earlier audit scope. Consult [RESEARCH-INDEX.md](RESEARCH-INDEX.md) for the wider published record; do not infer a global CVE total from the number of notices.
+Ali Firas / `thesmartshadow`
 
-**Interpretation:** `Reporter` means a published record credits the researcher. `Author` means the PR is authored by the researcher. `Merged` is verified separately. `Tracker` means a distro assessed or listed the CVE; it is not necessarily an issued update, a vulnerable product, or a credit to the reporter.
+This is the source trail for the [profile](README.md) and [research index](RESEARCH-INDEX.md).
 
-## 1. Kernel source contribution
+A commit with my author line is different from a fix the maintainer wrote following my report. A security notice that ships updated packages is different from a distribution's CVE tracker. I've kept those records apart so they can be checked directly.
+
+## Linux networking
 
 | Record | Attribution and scope | Status |
 | --- | --- | --- |
 | [Linux mainline `599d0e97610f`](https://github.com/torvalds/linux/commit/599d0e97610f09162d84c4ede4164628c066921e) · [net-next commit](https://git.kernel.org/netdev/net-next/c/599d0e97610f) | `vxlan: vnifilter: validate the VXLAN_VNIFILTER_ENTRY nest`; commit author **Ali Firas**, committer **Jakub Kicinski**; `NLA_POLICY_NESTED()` prevents partial application of a request containing policy-invalid entries. | **Merged**; verified directly in `torvalds/linux`. Committer timestamp: 2026-10-21 UTC. |
-| [net-next v4 0/7 - VXLAN vnifilter](https://patchew.org/linux/20261014123814.388557-1-alishmery18%40gmail.com/) | Ali Firas's seven-patch series; VNI bounds, dump/replay, memcg charges, and selftests. [Upstream acceptance bot](https://lists.openwall.net/linux-kernel/2026/10/21/37) | **Patch 1/7 merged** as above; patches **2-7 have no matching commits** in the acceptance notice. Do not count all seven as merged. |
+| [net-next v4 0/7 - VXLAN vnifilter](https://patchew.org/linux/20261014123814.388557-1-alishmery18%40gmail.com/) | Ali Firas's seven-patch series; VNI bounds, dump/replay, memcg charges, and selftests. [Upstream acceptance bot](https://lists.openwall.net/linux-kernel/2026/10/21/37) | Patch 1/7 merged as above; patches **2-7 have no matching commits** in the acceptance notice. Do not count all seven as merged. |
 
-## 2. Primary security advisories and first-party reports
+
+## Report and advisory records
 
 | Project | Original record / credit | Notes |
 | --- | --- | --- |
@@ -38,9 +41,9 @@
 | Net-SNMP | [Issue #1134, reporter text and maintainer fix](https://github.com/net-snmp/net-snmp/issues/1134) | CVE-2026-89147; requires SMUX initialized and listener reachable; stock Debian service disables SMUX at runtime. |
 | libp2p-rendezvous | [GHSA-gh9c-4324-26cm](https://github.com/advisories/GHSA-gh9c-4324-26cm) · [research gist](https://gist.github.com/thesmartshadow/25ef03f7ebbd12118a9d27695c885989) | CVE-2026-89146; TTL-triggered timer overflow. |
 
-### Additional first-party or researcher-linked publication leads
+### Other primary reports
 
-These are supplementary references to published research, not an assertion that each vendor has merged a patch. In particular, unreviewed GitHub advisories and CNA records require checking current product status before quoting them as maintainer security announcements.
+The following reports are supported by individual CNA, maintainer or researcher records. Where the maintainer has not accepted a patch, the source does not imply a merge.
 
 | Finding | Evidence link | Caveat |
 | --- | --- | --- |
@@ -55,7 +58,8 @@ These are supplementary references to published research, not an assertion that 
 | ownCloud Guests · CVE-2025-59716 | [Technical research report](https://gist.github.com/thesmartshadow/64ae0449e909174d0479a4f23657147f) · [PR #661](https://github.com/owncloud/guests/pull/661) | PR open at audit. |
 | docopt.cpp · CVE-2025-67125 | [Technical research report](https://gist.github.com/thesmartshadow/672afe8828844c833f46f8ebe2f5f3bd) · [PR #168](https://github.com/docopt/docopt.cpp/pull/168) | PR open at audit. |
 
-## 3. Downstream distribution updates, tracking, and corporate bulletins
+
+## Vendor and distribution records
 
 | Original finding | Evidence | Record type and caution |
 | --- | --- | --- |
@@ -78,7 +82,8 @@ These are supplementary references to published research, not an assertion that 
 | rust-openssl / CVE-2026-45784 | [SUSE tracker and SUSE-SU references](https://www.suse.com/security/cve/CVE-2026-45784.html) · [Red Hat assessment](https://access.redhat.com/security/cve/cve-2026-45784) | **SUSE security updates for specified packages and Red Hat analysis**. Red Hat presence alone does not establish that its software is affected. |
 | jq / CVE-2026-43895 | [Ubuntu CVE page](https://ubuntu.com/security/CVE-2026-43895) | **CVE tracker** (not a USN in this evidence). |
 
-## 4. Directly authored and merged upstream contributions
+
+## Merged changes
 
 Statuses checked against GitHub PR metadata on 2026-10-31.
 
@@ -96,20 +101,16 @@ Statuses checked against GitHub PR metadata on 2026-10-31.
 **Submitted but not merged / not to be labelled accepted patches:** [zlib #1317](https://github.com/madler/zlib/pull/1317) (closed unmerged); [microsoft/avml #763](https://github.com/microsoft/avml/pull/763) (closed unmerged); [digitalocean/do-markdownit #152](https://github.com/digitalocean/do-markdownit/pull/152) (open as checked); [docopt/docopt.cpp #168](https://github.com/docopt/docopt.cpp/pull/168) (open as checked).
 
 
-## 5. Limits and unresolved attribution
 
-- **CVE-2026-82455 (RubyGems) - rejected CVE record.** [Ubuntu's CVE page](https://ubuntu.com/security/CVE-2026-82455) describes the rejected status and maintainer disagreement with the security classification. The [merged RubyGems patch #9493](https://github.com/ruby/rubygems/pull/9493) remains a legitimate engineering contribution, but the rejected CVE should **not** be counted as an active accepted vulnerability.
-- The GitHub profile README, `data/cves.txt`, GitHub advisory credit search, and personal research site cover different subsets of work. **Do not advertise an unverified global CVE count** until records are deduplicated and rejected/reserved IDs excluded.
-- Linux kernel **patch 1/7 was merged into mainline**, confirmed by `torvalds/linux` commit `599d0e97610f`. The netdev application notice has no matching commits for patches 2-7; do not count those as merged.
-- Chrome CNA's published `CVE-2026-106484` references `GHSA-5hw5-4q87-m6x9`, which credits `thesmartshadow`. The GHSA's older "No known CVE" display should not be treated as disproof of the later CNA record.
-- A vendor security tracker is not synonymous with a vendor security bulletin or a fix. Use exact evidence type when writing about Red Hat, Ubuntu, Debian, Microsoft, IBM, and SUSE.
-- Do not infer exploitation, universal product impact, or downstream reach from downloads or transitive dependency presence alone.
+## Record corrections
 
-- **OpenSSL vs rust-openssl:** the upstream OpenSSL QUIC accounting vulnerability and the separate Rust OpenSSL bindings buffer-overflow finding must not be merged or described as one disclosure. The OpenSSL vendor names the discoverer and the separate fix author.
-- **Multi-CVE distribution notices:** Ubuntu USN-8847-1 covers multiple CVEs; only CVE-2026-35191 is attributed to this researcher in this register, and the notice itself does not establish reporter credit.
-- **fasthttp GO-2026-4950:** independently published security record with direct credit, but **not** counted as a CVE.
-- **libheif:** Ubuntu issued two notices addressing one CVE across different Ubuntu releases; do not count as multiple vulnerabilities.
+- [RubyGems CVE-2026-82455](https://www.cve.org/CVERecord?id=CVE-2026-82455) was rejected. The [patch I wrote](https://github.com/ruby/rubygems/pull/9493) was merged, but it is not an accepted CVE.
+- [Chrome CNA](https://github.com/CVEProject/cvelistV5/blob/main/cves/2026/106xxx/CVE-2026-106484.json) published CVE-2026-106484 after the linked GitHub advisory was created. Its older “No known CVE” field is not the current assignment record.
+- The Linux mainline commit covers patch 1/7, not the entire submitted series.
+- The two Ubuntu libheif notices concern one CVE across different supported releases.
+- [fasthttp GO-2026-4950](https://pkg.go.dev/vuln/GO-2026-4950) is a published Go vulnerability entry without a CVE in this ledger.
+- Some SUSE and Red Hat links are product assessments rather than security updates. The record type is identified in the table.
 
-## 6. Advisory awaiting reporter-credit confirmation
+## lldpd
 
 - [lldpd GHSA-jmrh-hxvj-p42g](https://github.com/lldpd/lldpd/security/advisories/GHSA-jmrh-hxvj-p42g) - [Debian 1.0.23-1 upload changelog (26 Oct 2026)](https://tracker.debian.org/news/1815479/accepted-lldpd-1023-1-source-into-unstable/) confirms an upstream release shipped a fix for this out-of-bounds read. The maintainer advisory's reporter-credit field could not be independently retrieved in this audit. Keep credit conditional and do not invent a CVE.
