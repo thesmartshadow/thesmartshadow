@@ -1,206 +1,115 @@
-<div align="center">
+# Ali Firas (thesmartshadow)
 
-# Ali Firas
+**Linux kernel contributor | Vulnerability researcher | Systems engineer**
 
-### Open-Source Security Researcher
+My work is in Linux networking and the security boundaries of widely used software. I investigate bugs in parsers, file operations, protocol implementations, authorization paths, and resource accounting. Some reports end in advisories; others end in patches and tests that upstream maintainers can carry.
 
-I audit open-source software, reproduce security flaws, work with maintainers on remediation, and follow issues through fixes, regression coverage, advisories, releases, and downstream distribution updates.
+I prefer to keep the evidence close to the claim: original commits, maintainer advisories, release notes, and distribution security notices.
 
-[GitHub Advisories](https://github.com/advisories?query=credit%3Athesmartshadow) · [HackerOne](https://hackerone.com/thesmartshadow) · [LinkedIn](https://www.linkedin.com/in/ali-shmery/) · [MSRC Special Recognition](https://msrc.microsoft.com/special-mention) · [GitLab](https://gitlab.com/thesmartshadow)
+[Kernel commit](https://github.com/torvalds/linux/commit/599d0e97610f09162d84c4ede4164628c066921e) | [OpenSSL advisory](https://openssl-library.org/news/secadv/20260929.txt) | [Chrome CNA record](https://github.com/CVEProject/cvelistV5/blob/main/cves/2026/106xxx/CVE-2026-106484.json) | [GitHub advisories](https://github.com/advisories?query=credit%3Athesmartshadow) | [Upstream PRs](https://github.com/pulls?q=is%3Apr+author%3Athesmartshadow) | [Research site](https://thesmartshadow.dev/)
 
-</div>
+## Linux kernel
 
-## What I work on
+I contributed [`599d0e97610f`](https://github.com/torvalds/linux/commit/599d0e97610f09162d84c4ede4164628c066921e), **`vxlan: vnifilter: validate the VXLAN_VNIFILTER_ENTRY nest`**, to the Linux networking code. The patch was merged through `net-next` and is present in [`torvalds/linux`](https://github.com/torvalds/linux). It is authored and signed off by Ali Firas and was committed by Jakub Kicinski on 21 October 2026.
 
-My work is centered on source-code auditing and open-source vulnerability research. I am most interested in flaws that cross trust boundaries quietly: authorization mistakes, unsafe file handling, parser failures, shared state, archive extraction, command construction, memory safety, and resource limits that are enforced too late.
+The problem was in the netlink validation boundary. VXLAN VNI filter entries were parsed and applied one at a time. A message containing a valid entry followed by a policy-invalid entry could change state and emit an `RTM_NEWTUNNEL` notification before the kernel rejected the rest of the message. I connected the outer nest to the entry policy with `NLA_POLICY_NESTED()`, moving that validation ahead of dispatch. The change closes the policy-validation case; it does not make all later device or handler failures atomic.
 
-A useful report should leave a project with more than a finding. I try to provide a small reproducible case, affected-version analysis, a clear root cause, and a practical fix. When it makes sense, I also write the patch and regression tests myself.
+The commit came out of a [seven-patch VXLAN vnifilter series](https://patchew.org/linux/20261014123814.388557-1-alishmery18%40gmail.com/) involving VNI range checks, bounded requests, dump consistency, memory accounting, and selftests. [Patch 1 was accepted](https://lists.openwall.net/linux-kernel/2026/10/21/37). I keep the remaining submitted patches separate from the merged record.
 
-## Selected ecosystem impact
+## Vulnerability research
 
-### CISA manage.get.gov
+### OpenSSL: QUIC amplification accounting
 
-Reported a high-impact authorization flaw that allowed a view-only organization member to perform privileged member-management actions. The report was validated through a real application flow and led to an upstream fix and an official GitHub Security Advisory rated 8.1 High.
+[CVE-2026-35191](https://www.cve.org/CVERecord?id=CVE-2026-35191) | [OpenSSL security advisory](https://openssl-library.org/news/secadv/20260929.txt) | [OpenSSL vulnerability record](https://openssl-library.org/news/vulnerabilities-4.0/)
 
-[GHSA-hfq4-89cf-8p8j](https://github.com/cisagov/manage.get.gov/security/advisories/GHSA-hfq4-89cf-8p8j) · [Fix PR #5049](https://github.com/cisagov/manage.get.gov/pull/5049)
+In the affected OpenSSL QUIC server configuration, an incoming UDP datagram containing multiple QUIC packets could be counted more than once toward unvalidated amplification credit. That broke the intended three-times amplification bound in RFC 9000. The condition depends on the server's address-validation configuration; it is not a general TLS or cryptographic primitive flaw.
 
-### CoreDNS
+OpenSSL records my report on 13 June 2026 and an independent report from Nikolas Gauder of NVIDIA on 22 August. Neil Horman wrote the fix, released in OpenSSL 3.5.9, 3.6.5, and 4.0.3. The advisory is unusually useful here because it records the reporting chronology, technical impact, and remediation in one place.
 
-Reported a remote, unauthenticated denial-of-service issue in the DNS-over-HTTPS GET path. Oversized `dns` query values caused expensive parsing, Base64 decoding, and DNS message processing before validation rejected the request. The fix shipped in CoreDNS 1.14.3, and the advisory credits `thesmartshadow` as the reporter.
+### Chrome DevTools MCP: checking a path before changing it
 
-[CVE-2026-32936](https://www.cve.org/CVERecord?id=CVE-2026-32936) · [GHSA-63cw-r7xf-jmwr](https://github.com/coredns/coredns/security/advisories/GHSA-63cw-r7xf-jmwr) · [GO-2026-5164](https://pkg.go.dev/vuln/GO-2026-5164)
+[CVE-2026-106484](https://github.com/CVEProject/cvelistV5/blob/main/cves/2026/106xxx/CVE-2026-106484.json) | [GHSA-5hw5-4q87-m6x9](https://github.com/ChromeDevTools/chrome-devtools-mcp/security/advisories/GHSA-5hw5-4q87-m6x9)
 
-### jq
+The MCP server checked the caller-supplied path against its permitted roots, then rewrote the file extension before writing. The final path was not subjected to the same canonical-path check. Under the documented symlink conditions, this allowed a write outside the intended roots.
 
-Reported a path-resolution inconsistency caused by embedded NUL bytes in jq import paths. A policy layer could approve the full logical import name while jq resolved and opened a different local module or data file, breaking trust assumptions around policy loading and redaction. The issue was fixed in jq 1.8.2 and later tracked by major Linux and cloud vendors.
+The finding was an incomplete-fix variant, not a new class of unrestricted browser execution. The maintainer advisory credits `thesmartshadow`, and **Chrome CNA** assigned and published CVE-2026-106484 on 28 October 2026. The affected package was `chrome-devtools-mcp` before 1.5.0.
 
-[CVE-2026-43895](https://www.cve.org/CVERecord?id=CVE-2026-43895) · [GHSA-7q7g-mrq3-phxr](https://github.com/jqlang/jq/security/advisories/GHSA-7q7g-mrq3-phxr)
+### zlib: stale buffer state across a write stall
 
-### Microsoft APM
+[CVE-2026-85091](https://www.cve.org/CVERecord?id=CVE-2026-85091) | [Research](https://gist.github.com/thesmartshadow/e0b9481792afb7c31e86fee1ff084490) | [Ubuntu USN-8954-1](https://ubuntu.com/security/notices/USN-8954-1)
 
-Reported a symlink-handling flaw in the installation of remote APM packages. Package-controlled links inside `.apm/prompts/` or `.apm/agents/` could be followed during installation, copying local file contents into generated assistant directories such as `.claude`, `.codex`, `.cursor`, and `.github`. Microsoft fixed the issue in APM 0.13.0.
+A non-blocking write stall could leave stale external-buffer state in the gzip write path. A subsequent formatted write could then reach an out-of-bounds `memmove` in `gz_vacate()`. Ubuntu's security notice identifies Ali Firas as the discoverer and records patched distribution packages. I also submitted [zlib PR #1317](https://github.com/madler/zlib/pull/1317); it was closed without merge and is not listed as an accepted patch.
 
-[CVE-2026-45539](https://www.cve.org/CVERecord?id=CVE-2026-45539) · [GHSA-q5pp-gvjg-h7v4](https://github.com/microsoft/apm/security/advisories/GHSA-q5pp-gvjg-h7v4)
+### vm2: a host-realm Promise escaping the sandbox
 
-### libheif
+[CVE-2026-92956](https://github.com/advisories/GHSA-wjwh-qqvp-g4p4) | Critical | Co-reported with `zolbooo`
 
-Reported a heap out-of-bounds write in the uncompressed encoder when auxiliary alpha-plane dimensions did not match the primary image. The encoder sized its output using the primary image while copying component data using the component plane's actual size. The project fixed the issue in libheif 1.23.1.
+On affected Node.js 26 configurations, a `WebAssembly` streaming path exposed a host-realm Promise through a default vm2 sandbox. The interaction with `Promise.prototype.finally` and `Symbol.species` could recover host capabilities. The result is a sandbox escape under the affected conditions, not an assertion that every vm2 deployment is remotely exploitable.
 
-[CVE-2026-62291](https://www.cve.org/CVERecord?id=CVE-2026-62291) · [GHSA-xpw3-9rhw-482x](https://github.com/strukturag/libheif/security/advisories/GHSA-xpw3-9rhw-482x)
+### Cloudflare Pingora: hop-by-hop headers and downstream authorization
 
-### RubyGems
+[CVE-2026-105299](https://www.cve.org/CVERecord?id=CVE-2026-105299) | [Cloudflare advisory](https://github.com/cloudflare/pingora/security/advisories/GHSA-vx4q-2c55-cvmg) | [RustSec](https://rustsec.org/advisories/RUSTSEC-2026-0390.html)
 
-Authored and shipped a symlink-aware extraction boundary fix for RubyGems. The patch prevents a pre-existing symlink inside the destination tree from redirecting extracted files outside the intended directory and includes regression coverage. It was released in RubyGems 4.0.13 with credit to `thesmartshadow`.
+In chained HTTP/1 proxy deployments, attacker-controlled `Connection` header tokens could cause an intermediary to remove a header trusted by the origin. The authorization consequence depended on the proxy chain and how the origin used that header. Cloudflare credits my report and notes that its CDN customers were not affected.
 
-[PR #9493](https://github.com/ruby/rubygems/pull/9493) · [RubyGems 4.0.13 release](https://blog.rubygems.org/2026/06/03/4.0.13-released.html)
+### Memory safety: rust-openssl and libheif
 
-### rust-openssl
+[CVE-2026-45784](https://github.com/advisories/GHSA-phqj-4mhp-q6mq) involved an out-of-bounds write in the Rust `openssl` crate's `CipherCtxRef::cipher_update_inplace` for AES key-wrap-with-padding. The operation was missed by an earlier fix; the correction shipped in crate version 0.10.80. This is **separate** from my QUIC finding in OpenSSL's C codebase.
 
-Reported an out-of-bounds write in `CipherCtxRef::cipher_update_inplace` for AES key-wrap-with-padding ciphers. Non-aligned input could cause OpenSSL to write beyond the caller-provided buffer, and the affected method had been missed by an earlier security fix. The issue was fixed in the `openssl` crate 0.10.80.
+[CVE-2026-62291](https://github.com/strukturag/libheif/security/advisories/GHSA-xpw3-9rhw-482x) was a heap out-of-bounds write in libheif's uncompressed encoder when component-plane dimensions did not match the primary image. Ubuntu issued [USN-8683-1](https://ubuntu.com/security/notices/USN-8683-1) and [USN-8774-1](https://ubuntu.com/security/notices/USN-8774-1). Both name Ali Firas and cover the affected releases separately.
 
-[CVE-2026-45784](https://www.cve.org/CVERecord?id=CVE-2026-45784) · [GHSA-phqj-4mhp-q6mq](https://github.com/rust-openssl/rust-openssl/security/advisories/GHSA-phqj-4mhp-q6mq)
+### Resource limits, parsing, and authorization
 
-### systeminformation
+A few examples where the security assumption failed before the final validation point:
 
-Reported command injection in the Linux `networkInterfaces()` path through attacker-controlled NetworkManager connection-profile names. The issue was reproduced with the real `nmcli` flow, where simply calling the API could reach vulnerable shell commands. The project fixed the issue in systeminformation 5.31.6.
+- [CoreDNS CVE-2026-32936](https://github.com/coredns/coredns/security/advisories/GHSA-63cw-r7xf-jmwr): oversized DNS-over-HTTPS GET input could consume resources before the request was rejected. Fixed in CoreDNS 1.14.3.
+- [cpp-httplib CVE-2026-28435](https://github.com/yhirose/cpp-httplib/security/advisories/GHSA-xvfx-w463-6fpp): streaming gzip decompression bypassed the configured payload budget. Fixed in 0.35.0.
+- [fasthttp GO-2026-4950](https://pkg.go.dev/vuln/GO-2026-4950): double-encoded paths could be interpreted differently by authorization logic and file-serving code. [Upstream fix #2163](https://github.com/valyala/fasthttp/pull/2163) was written by the maintainer and released in 1.70.0, with credit to my report. This record is not a CVE.
+- [CISA manage.get.gov GHSA-hfq4-89cf-8p8j](https://github.com/cisagov/manage.get.gov/security/advisories/GHSA-hfq4-89cf-8p8j): a view-only organization member could reach privileged member-management operations. [Maintainer fix #5049](https://github.com/cisagov/manage.get.gov/pull/5049).
+- [xmldom CVE-2026-34601](https://github.com/xmldom/xmldom/security/advisories/GHSA-wh4c-j3r5-mjhp): CDATA serialization failed to preserve the intended XML structure boundary. The issue subsequently appeared in vendor and distribution security notices.
 
-[CVE-2026-44724](https://www.cve.org/CVERecord?id=CVE-2026-44724) · [GHSA-hvx9-hwr7-wjj9](https://github.com/sebhildebrandt/systeminformation/security/advisories/GHSA-hvx9-hwr7-wjj9) · [Project security page](https://systeminformation.io/security.html)
+## Patches accepted upstream
 
-### Rack
+These are changes I wrote that were merged into repositories outside my account. The list is separate from vulnerabilities I reported but did not patch.
 
-Discovered a stored XSS condition in `Rack::Directory` through unsafe handling of attacker-controlled file names. The fix was released across supported Rack branches and later reached Ubuntu, Debian, and SUSE security updates. Ubuntu credited me by name in its security notice.
+| Project | Change |
+| --- | --- |
+| [Linux kernel, 599d0e97610f](https://github.com/torvalds/linux/commit/599d0e97610f09162d84c4ede4164628c066921e) | Validate nested VXLAN VNI filter attributes before dispatch. |
+| [RubyGems #9493](https://github.com/ruby/rubygems/pull/9493) | Keep extraction within its destination when pre-existing symlinks are present; add regression coverage. |
+| [CEL-Go #1302](https://github.com/cel-expr/cel-go/pull/1302) | Enforce source expression size limits before allocation. |
+| [Google zx #1349](https://github.com/google/zx/pull/1349) | Prevent cleanup through `--prefer-local` from deleting an external `node_modules` target. |
+| [Akamai CLI #227](https://github.com/akamai/cli/pull/227) | Validate package command names before deriving output paths. |
+| [Ruby JSON #948](https://github.com/ruby/json/pull/948) | Reject negative generator depth before entering unsafe native behavior. |
+| [Google HumanIO #4](https://github.com/google/humanio/pull/4) | Remove server source exposure and move a hard-coded token into configuration. |
+| [httparse #217](https://github.com/seanmonstar/httparse/pull/217) | Document resource limits for repeated partial-buffer parsing. This was a documentation change. |
 
-[CVE-2026-25500](https://www.cve.org/CVERecord?id=CVE-2026-25500) · [GHSA-whrj-4476-wvmp](https://github.com/rack/rack/security/advisories/GHSA-whrj-4476-wvmp) · [Ubuntu USN-8066-1](https://ubuntu.com/security/notices/USN-8066-1) · [Debian DSA-6180-1](https://lists.debian.org/debian-security-announce/2026/msg00089.html) · [SUSE](https://www.suse.com/security/cve/CVE-2026-25500.html)
+## Security notices and downstream handling
 
-### RustFS
+I follow findings beyond the initial advisory, but I distinguish a package tracker from a security update that a distribution has actually shipped.
 
-Reported a missing source-authorization check in the multipart copy path. A low-privileged tenant without read access to a private source object could copy it into a multipart upload under their own control and retrieve the completed object. The end-to-end reproduction confirmed cross-bucket data exposure with matching file size and SHA-256.
+| Research | Published response |
+| --- | --- |
+| **zlib, CVE-2026-85091** | [Ubuntu USN-8954-1](https://ubuntu.com/security/notices/USN-8954-1) credits my discovery and lists fixed packages; [Debian](https://security-tracker.debian.org/tracker/CVE-2026-85091) tracks affected versions. |
+| **OpenSSL, CVE-2026-35191** | [Ubuntu USN-8847-1](https://ubuntu.com/security/notices/USN-8847-1), [Debian DSA-6531-1](https://lists.debian.org/debian-security-announce/2026/msg00444.html), and [SUSE](https://www.suse.com/support/update/announcement/2026/suse-su-202624245-1/) published security updates for their applicable packages. |
+| **libheif, CVE-2026-62291** | [Ubuntu USN-8683-1](https://ubuntu.com/security/notices/USN-8683-1) and [USN-8774-1](https://ubuntu.com/security/notices/USN-8774-1) credit Ali Firas directly. |
+| **Rack, CVE-2026-25500** | [Ubuntu USN-8066-1](https://ubuntu.com/security/notices/USN-8066-1) names me; [Debian DSA-6180-1](https://lists.debian.org/debian-security-announce/2026/msg00089.html) and [SUSE](https://www.suse.com/security/cve/CVE-2026-25500.html) document downstream response. |
+| **xmldom, CVE-2026-34601** | [IBM Cloud Pak](https://www.ibm.com/support/pages/security-bulletin-automation-assets-ibm-cloud-pak-integration-vulnerable-vulnerability-xmldom), [IBM Maximo](https://www.ibm.com/support/pages/security-bulletin-ibm-maximo-application-suite-visual-inspection-component-uses-xmldom-which-vulnerable-cve-2026-34601), and [Red Hat](https://access.redhat.com/security/cve/cve-2026-34601) document product impact or assessment. |
 
-[CVE-2026-39360](https://www.cve.org/CVERecord?id=CVE-2026-39360) · [GHSA-mx42-j6wv-px98](https://github.com/advisories/GHSA-mx42-j6wv-px98)
+The presence of a CVE in a vendor tracker does not establish exploitability in every downstream product.
 
-## Upstream patches I authored
+## Other published investigations
 
-These are changes I wrote that were accepted into projects outside my own account:
+My public record also includes:
 
-- [RubyGems #9493](https://github.com/ruby/rubygems/pull/9493), confine extraction when destination paths contain pre-existing symlinks; released in RubyGems 4.0.13
-- [CEL-Go #1302](https://github.com/cel-expr/cel-go/pull/1302), enforce expression-size limits before source-buffer allocation, with regression and allocation tests
-- [Google zx #1349](https://github.com/google/zx/pull/1349), prevent cleanup from deleting an external `node_modules` directory; later published as CVE-2025-13437
-- [Ruby JSON #948](https://github.com/ruby/json/pull/948), reject negative generator depth before native hangs or crashes
-- [Google HumanIO #4](https://github.com/google/humanio/pull/4), stop source-file exposure and move a hard-coded service token to environment configuration
-- [httparse #217](https://github.com/seanmonstar/httparse/pull/217), document strict limits for repeated parsing of growing partial buffers
+- **Privilege boundaries:** [uutils coreutils CVE-2026-93658](https://www.cve.org/CVERecord?id=CVE-2026-93658), [su-exec CVE-2026-82457](https://www.cve.org/CVERecord?id=CVE-2026-82457), [Microsoft AVML CVE-2026-61371](https://www.cve.org/CVERecord?id=CVE-2026-61371), [LiME CVE-2026-85092](https://www.cve.org/CVERecord?id=CVE-2026-85092).
+- **Authorization and trust boundaries:** [RustFS CVE-2026-39360](https://github.com/advisories/GHSA-mx42-j6wv-px98), [Microsoft APM CVE-2026-45539](https://github.com/microsoft/apm/security/advisories/GHSA-q5pp-gvjg-h7v4), [Microsoft UFO CVE-2026-54568](https://github.com/microsoft/UFO/security/advisories/GHSA-hc27-j4p9-qm2x), [Russh CVE-2026-68930](https://github.com/advisories/GHSA-m65r-rprj-r5rg), [Axios CVE-2026-67320](https://github.com/advisories/GHSA-gcfj-64vw-6mp9), [ownCloud Guests CVE-2025-59716](https://www.cve.org/CVERecord?id=CVE-2025-59716).
+- **Parsers and state handling:** [Hickory DNS CVE-2026-93657](https://github.com/advisories/GHSA-5j98-2g5x-46v6), [cilium/ebpf CVE-2026-10722](https://github.com/cilium/ebpf/issues/2019), [Net-SNMP CVE-2026-89147](https://www.cve.org/CVERecord?id=CVE-2026-89147), [libp2p rendezvous CVE-2026-89146](https://www.cve.org/CVERecord?id=CVE-2026-89146), [Nezha CVE-2026-100394](https://github.com/advisories/GHSA-qjpp-gffx-2wm9), [Hono CVE-2026-59896](https://github.com/advisories/GHSA-hvrm-45r6-mjfj).
+- **File handling and resource consumption:** [pyLoad CVE-2026-32808](https://github.com/pyload/pyload/security/advisories/GHSA-7g4m-8hx2-4qh3) (co-discovered with Ali Al-Akbar), [PyJWT CVE-2026-48525](https://github.com/advisories/GHSA-w7vc-732c-9m39), [basic-ftp CVE-2026-44240](https://github.com/advisories/GHSA-rpmf-866q-6p89), [systeminformation CVE-2026-44724](https://github.com/advisories/GHSA-hvx9-hwr7-wjj9), [jq CVE-2026-43895](https://github.com/advisories/GHSA-7q7g-mrq3-phxr), [tar-rs CVE-2026-70622](https://www.cve.org/CVERecord?id=CVE-2026-70622), [miniserve CVE-2025-67124](https://www.cve.org/CVERecord?id=CVE-2025-67124).
 
-## Additional published security research
-
-- **PyJWT**, unauthenticated resource-consumption amplification in detached JWS processing; fixed in 2.13.0 with reporter credit in the security release. [CVE-2026-48525](https://www.cve.org/CVERecord?id=CVE-2026-48525) · [GHSA-w7vc-732c-9m39](https://github.com/jpadilla/pyjwt/security/advisories/GHSA-w7vc-732c-9m39)
-- **Hono**, cross-request context leakage caused by shared mutable JSX state; fixed in 4.12.27. [CVE-2026-59896](https://www.cve.org/CVERecord?id=CVE-2026-59896) · [GHSA-hvrm-45r6-mjfj](https://github.com/honojs/hono/security/advisories/GHSA-hvrm-45r6-mjfj)
-- **xmldom**, XML injection through unsafe CDATA serialization; fixed across two maintained release lines with changelog credit. [CVE-2026-34601](https://www.cve.org/CVERecord?id=CVE-2026-34601) · [GHSA-wh4c-j3r5-mjhp](https://github.com/xmldom/xmldom/security/advisories/GHSA-wh4c-j3r5-mjhp)
-- **Zen C**, stack-based buffer overflow in compiler identifier mangling; fixed in 0.4.4, with `thesmartshadow` credited as reporter. [CVE-2026-33491](https://www.cve.org/CVERecord?id=CVE-2026-33491) · [GHSA-rv74-w6q7-h8xr](https://github.com/zenc-lang/zenc/security/advisories/GHSA-rv74-w6q7-h8xr)
-- **basic-ftp**, unbounded multiline-response accumulation from a malicious or compromised FTP server; fixed in 5.3.1. [CVE-2026-44240](https://www.cve.org/CVERecord?id=CVE-2026-44240) · [GHSA-rpmf-866q-6p89](https://github.com/advisories/GHSA-rpmf-866q-6p89)
-- **Microsoft UFO**, missing authorization allowed an authenticated device client to request another device's stored system information. [CVE-2026-54568](https://www.cve.org/CVERecord?id=CVE-2026-54568) · [GHSA-hc27-j4p9-qm2x](https://github.com/microsoft/UFO/security/advisories/GHSA-hc27-j4p9-qm2x)
-- **pyLoad**, arbitrary file deletion during encrypted 7z password verification; co-discovered with [Ali Al-Akbar](https://github.com/ExeC-IQ). [CVE-2026-32808](https://www.cve.org/CVERecord?id=CVE-2026-32808) · [GHSA-7g4m-8hx2-4qh3](https://github.com/pyload/pyload/security/advisories/GHSA-7g4m-8hx2-4qh3)
-- **Microsoft AVML**, symlink-following output creation with truncation before validation; fixed in 0.17.0. [CVE-2026-61371](https://www.cve.org/CVERecord?id=CVE-2026-61371) · [Research reference](https://gist.github.com/thesmartshadow/2d099071f847de8db3dc4bbaf4dfa6df) · [Microsoft fix PR #754](https://github.com/microsoft/avml/pull/754)
-- **cilium/ebpf**, malformed BTF input could trigger parser panics; the report led to an upstream boundary-check fix. [CVE-2026-10722](https://www.cve.org/CVERecord?id=CVE-2026-10722) · [Issue #2019](https://github.com/cilium/ebpf/issues/2019) · [Fix PR #2021](https://github.com/cilium/ebpf/pull/2021)
-- **miniserve**, upload finalization was affected by a TOCTOU and symlink race outside the intended root. [CVE-2025-67124](https://www.cve.org/CVERecord?id=CVE-2025-67124) · [GHSA-mxc8-4jqf-368q](https://github.com/advisories/GHSA-mxc8-4jqf-368q)
-- **docopt.cpp**, signed counter overflow in repeated-option occurrence merging. [CVE-2025-67125](https://www.cve.org/CVERecord?id=CVE-2025-67125) · [Research reference](https://gist.github.com/thesmartshadow/672afe8828844c833f46f8ebe2f5f3bd)
-- **ownCloud Guests**, unauthenticated pending-guest enumeration through response differences in registration links. [CVE-2025-59716](https://www.cve.org/CVERecord?id=CVE-2025-59716) · [Research reference](https://gist.github.com/thesmartshadow/64ae0449e909174d0479a4f23657147f)
-- **DigitalOcean do-markdownit**, allow-list bypass through string-versus-array type confusion. [CVE-2025-59717](https://www.cve.org/CVERecord?id=CVE-2025-59717) · [GHSA-2h8j-8r9p-849f](https://github.com/advisories/GHSA-2h8j-8r9p-849f)
-- **Tempus Ex hello-video-codec**, crafted input could trigger denial of service in `BitstreamWriter::write_bits()`. [CVE-2025-63095](https://www.cve.org/CVERecord?id=CVE-2025-63095) · [Research reference](https://gist.github.com/thesmartshadow/b092e2493821491b981a069847a33064)
-
-<details>
-<summary><strong>Published CVE record, 23 entries</strong></summary>
-
-### 2026
-
-- [CVE-2026-62291](https://www.cve.org/CVERecord?id=CVE-2026-62291), libheif
-- [CVE-2026-61371](https://www.cve.org/CVERecord?id=CVE-2026-61371), Microsoft AVML
-- [CVE-2026-59896](https://www.cve.org/CVERecord?id=CVE-2026-59896), Hono
-- [CVE-2026-54568](https://www.cve.org/CVERecord?id=CVE-2026-54568), Microsoft UFO
-- [CVE-2026-48525](https://www.cve.org/CVERecord?id=CVE-2026-48525), PyJWT
-- [CVE-2026-45784](https://www.cve.org/CVERecord?id=CVE-2026-45784), rust-openssl
-- [CVE-2026-45539](https://www.cve.org/CVERecord?id=CVE-2026-45539), Microsoft APM
-- [CVE-2026-44724](https://www.cve.org/CVERecord?id=CVE-2026-44724), systeminformation
-- [CVE-2026-44240](https://www.cve.org/CVERecord?id=CVE-2026-44240), basic-ftp
-- [CVE-2026-43895](https://www.cve.org/CVERecord?id=CVE-2026-43895), jq
-- [CVE-2026-39360](https://www.cve.org/CVERecord?id=CVE-2026-39360), RustFS
-- [CVE-2026-34601](https://www.cve.org/CVERecord?id=CVE-2026-34601), xmldom
-- [CVE-2026-33491](https://www.cve.org/CVERecord?id=CVE-2026-33491), Zen C
-- [CVE-2026-32936](https://www.cve.org/CVERecord?id=CVE-2026-32936), CoreDNS
-- [CVE-2026-32808](https://www.cve.org/CVERecord?id=CVE-2026-32808), pyLoad
-- [CVE-2026-25500](https://www.cve.org/CVERecord?id=CVE-2026-25500), Rack
-- [CVE-2026-10722](https://www.cve.org/CVERecord?id=CVE-2026-10722), cilium/ebpf
-
-### 2025
-
-- [CVE-2025-67125](https://www.cve.org/CVERecord?id=CVE-2025-67125), docopt.cpp
-- [CVE-2025-67124](https://www.cve.org/CVERecord?id=CVE-2025-67124), miniserve
-- [CVE-2025-63095](https://www.cve.org/CVERecord?id=CVE-2025-63095), Tempus Ex hello-video-codec
-- [CVE-2025-59717](https://www.cve.org/CVERecord?id=CVE-2025-59717), DigitalOcean do-markdownit
-- [CVE-2025-59716](https://www.cve.org/CVERecord?id=CVE-2025-59716), ownCloud Guests
-- [CVE-2025-13437](https://www.cve.org/CVERecord?id=CVE-2025-13437), Google zx
-
-</details>
-
-<details>
-<summary><strong>Downstream distribution and vendor tracking</strong></summary>
-
-### Rack, CVE-2026-25500
-
-- [Ubuntu USN-8066-1](https://ubuntu.com/security/notices/USN-8066-1)
-- [Debian DSA-6180-1](https://lists.debian.org/debian-security-announce/2026/msg00089.html)
-- [SUSE security tracker](https://www.suse.com/security/cve/CVE-2026-25500.html)
-- [GitLab Advisory Database](https://advisories.gitlab.com/gem/rack/CVE-2026-25500/)
-- [GitLab EE deployment discussion](https://forum.gitlab.com/t/is-it-possible-to-update-the-rack-ruby-library-of-my-gitlab-ee-installation/132909)
-
-### jq, CVE-2026-43895
-
-- [Red Hat](https://access.redhat.com/security/cve/cve-2026-43895)
-- [Amazon Linux](https://explore.alas.aws.amazon.com/CVE-2026-43895.html)
-- [Alibaba Cloud Linux](https://alas.aliyuncs.com/cves/detail/CVE-2026-43895)
-- [ALT Linux](https://packages.altlinux.org/en/vuln/CVE-2026-43895)
-- [Alpine Linux](https://security.alpinelinux.org/vuln/CVE-2026-43895)
-
-### CoreDNS, CVE-2026-32936
-
-- [Go Vulnerability Database](https://pkg.go.dev/vuln/GO-2026-5164)
-- [Red Hat](https://access.redhat.com/security/cve/cve-2026-32936)
-- [Microsoft Security Response Center](https://msrc.microsoft.com/update-guide/vulnerability/CVE-2026-32936)
-- [Tenable](https://www.tenable.com/plugins/pipeline/issues/222896-0)
-
-### rust-openssl, CVE-2026-45784
-
-- [LWN security update coverage](https://lwn.net/Articles/1083188/)
-- [openSUSE advisory coverage](https://linuxsecurity.com/advisories/opensuse/opensuse-2026-0243-1-afterburn)
-- [Additional SUSE package coverage](https://www.linuxcompatible.org/story/racut-systemd-pythonmaturin-go-125-and-kerneldevel-updates-for-suse/)
-- [Amazon ECS Init openSUSE advisory coverage](https://linuxsecurity.com/advisories/opensuse/opensuse-2026-10871-1-amazon-ecs-init)
-
-### systeminformation, CVE-2026-44724
-
-- [Project security page](https://systeminformation.io/security.html)
-- [Ubuntu Launchpad tracking](https://launchpad.net/bugs/cve/CVE-2026-44724)
-
-</details>
-
-## How I approach a project
-
-I start with the trust boundary, not a scanner result. I trace how external data reaches file operations, parsers, authorization checks, process execution, shared state, cryptographic buffers, or resource allocation. When something looks wrong, I reduce it to the smallest realistic reproduction I can build and test it against clean versions.
-
-I also try to keep severity separate from technical validity. Some findings are vulnerabilities, some are hardening opportunities, and some should remain ordinary bugs. The goal is to give maintainers evidence they can act on without forcing a security label where it does not belong.
-
-## Current interests
-
-- Package managers and archive extraction
-- Authorization and multi-tenant isolation
-- Parsers and malformed-input handling
-- Memory safety and cryptographic bindings
-- Developer tools, AI tooling, and CI workflows
-- Linux and systems software
-- Supply-chain security
-- Patch analysis and incomplete fixes
+I do not count proposed fixes as merged patches, or advisories without a CVE as additional CVEs.
 
 ## Contact
 
-For coordinated disclosure or open-source security collaboration:
+[GitHub](https://github.com/thesmartshadow) | [HackerOne](https://hackerone.com/thesmartshadow) | [Research site](https://thesmartshadow.dev/) | [LinkedIn](https://www.linkedin.com/in/ali-shmery/)
 
-- GitHub: [@thesmartshadow](https://github.com/thesmartshadow)
-- HackerOne: [thesmartshadow](https://hackerone.com/thesmartshadow)
-- LinkedIn: [Ali Firas](https://www.linkedin.com/in/ali-shmery/)
+For coordinated disclosure or work on an upstream fix, GitHub or HackerOne are the best starting points.
