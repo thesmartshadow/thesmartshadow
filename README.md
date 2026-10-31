@@ -8,6 +8,8 @@ I prefer to keep the evidence close to the claim: original commits, maintainer a
 
 [Kernel commit](https://github.com/torvalds/linux/commit/599d0e97610f09162d84c4ede4164628c066921e) | [OpenSSL advisory](https://openssl-library.org/news/secadv/20260929.txt) | [Chrome CNA record](https://github.com/CVEProject/cvelistV5/blob/main/cves/2026/106xxx/CVE-2026-106484.json) | [GitHub advisories](https://github.com/advisories?query=credit%3Athesmartshadow) | [Upstream PRs](https://github.com/pulls?q=is%3Apr+author%3Athesmartshadow) | [Research site](https://thesmartshadow.dev/)
 
+The complete [research index](RESEARCH-INDEX.md) covers the other published findings. [Source and patch notes](EVIDENCE-REGISTER.md) distinguish credited discoveries from fixes I authored, upstream merges, and vendor or distribution response.
+
 ## Linux kernel
 
 I contributed [`599d0e97610f`](https://github.com/torvalds/linux/commit/599d0e97610f09162d84c4ede4164628c066921e), **`vxlan: vnifilter: validate the VXLAN_VNIFILTER_ENTRY nest`**, to the Linux networking code. The patch was merged through `net-next` and is present in [`torvalds/linux`](https://github.com/torvalds/linux). It is authored and signed off by Ali Firas and was committed by Jakub Kicinski on 21 October 2026.
