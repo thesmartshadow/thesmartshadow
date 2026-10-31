@@ -2,7 +2,7 @@
 
 Ali Firas / `thesmartshadow`
 
-This is my published work, indexed by project and identifier. The brief descriptions tell you where the check failed. The links go to the advisory, original report or upstream change.
+This is my published work, indexed by project and identifier. The brief descriptions tell you where the check failed
 
 The table contains 39 CVE records from the current research ledger. It is not a live counter, and it should not be read as a claim that I wrote every vendor fix.
 ## 2026
