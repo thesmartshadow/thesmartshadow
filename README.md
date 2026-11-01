@@ -1,6 +1,6 @@
 # Ali Firas
 
-**Linux Kernel Development & Networking | Zero-Day Vulnerability Research | Low-Level Systems & Security Engineering**
+**Linux Kernel Development & Networking | Zero-Day Vulnerability Research | Low-Level Systems & Security Engineering | Binary Exploitation**
 
 `thesmartshadow`
 
