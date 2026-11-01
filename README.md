@@ -1,82 +1,103 @@
 # Ali Firas
 
-`thesmartshadow` | Linux kernel contributor | Security research
+**Linux Kernel Development & Networking | Zero-Day Vulnerability Research | Low-Level Systems & Security Engineering**
 
-I work on Linux networking and vulnerability research in open-source software. Most of the bugs I spend time on are in the details: netlink attributes applied before validation finishes, paths checked before they are rewritten, counters that stop meaning what their callers think they mean, or parsers doing expensive work before enforcing a limit.
+`thesmartshadow`
 
-I also write fixes. The [VXLAN change below](https://github.com/torvalds/linux/commit/599d0e97610f09162d84c4ede4164628c066921e) is in the mainline kernel; other work has landed in RubyGems, CEL-Go, zx, Akamai CLI and several smaller projects.
+C/C++ · Rust · Go · kernel networking · Netlink / VXLAN · eBPF / XDP · resource accounting · reverse engineering · memory safety · exploit validation · protocol security · sandboxing · filesystem and privilege boundaries · upstream patches · regression tests
 
-[Kernel commits](https://github.com/torvalds/linux/commit/599d0e97610f09162d84c4ede4164628c066921e) / [Advisories](https://github.com/advisories?query=credit%3Athesmartshadow) / [Research notes](https://thesmartshadow.dev/) / [HackerOne](https://hackerone.com/thesmartshadow)
+I work on the implementation details behind security failures: state transitions, memory ownership, validation order, and boundaries that break when data changes representation or crosses into another subsystem. My work spans the Linux network stack, userspace protocol implementations, runtimes, package managers, and security-sensitive tooling.
 
-## Linux networking
+[Kernel commits](https://github.com/torvalds/linux/commit/599d0e97610f09162d84c4ede4164628c066921e) · [Research](RESEARCH.md) · [Upstream work](UPSTREAM.md) · [Advisories](https://github.com/advisories?query=credit%3Athesmartshadow) · [thesmartshadow.dev](https://thesmartshadow.dev)
 
-**VXLAN VNI filter validation**, merged into [`torvalds/linux`](https://github.com/torvalds/linux/commit/599d0e97610f09162d84c4ede4164628c066921e) as `599d0e97610f`.
+---
 
-`vxlan_vnifilter_process()` parsed the outer netlink message, then validated nested VNI entries as it dispatched them. That ordering matters. If the first entry was valid and the next was malformed, the first could already have been installed and its `RTM_NEWTUNNEL` notification sent by the time the request failed.
+## Linux kernel
 
-The merged patch wires `VXLAN_VNIFILTER_ENTRY` to `vni_filter_entry_policy` through `NLA_POLICY_NESTED()`. Policy-invalid entries are rejected before dispatch. It does not attempt to roll back later device or handler failures.
+**[vxlan: vnifilter: validate the VXLAN_VNIFILTER_ENTRY nest](https://github.com/torvalds/linux/commit/599d0e97610f09162d84c4ede4164628c066921e)**  
+`599d0e97610f` · `net-next` · merged into `torvalds/linux`
 
-I authored the change; Jakub Kicinski applied it to `net-next` on 21 October 2026. It reached the [mainline Linux tree](https://github.com/torvalds/linux/commit/599d0e97610f09162d84c4ede4164628c066921e).
+`vxlan_vnifilter_process()` processed entries while their nested attributes were still being validated individually. A malformed later entry could reject the request after an earlier entry had already been installed and an `RTM_NEWTUNNEL` notification sent. The change binds `VXLAN_VNIFILTER_ENTRY` to `vni_filter_entry_policy` using `NLA_POLICY_NESTED()`, validating the message's entry attributes before dispatch.
 
-The work started as a [seven-patch vnifilter series](https://patchew.org/linux/20261014123814.388557-1-alishmery18%40gmail.com/) covering range validation, request bounds, dump behavior, per-VNI accounting and selftests. The [netdev application notice](https://lists.openwall.net/linux-kernel/2026/10/21/37) identifies patch 1/7 as merged. I have not labelled the remaining six as merged.
+The [VXLAN VNIFILTER patch series](https://lore.kernel.org/netdev/20261014123814.388557-1-alishmery18@gmail.com/) extends into VNI range limits, netlink dump semantics, per-message bounds, allocation accounting, and forwarding selftests. The work involves `GFP_KERNEL_ACCOUNT`, `GFP_ATOMIC`, memcg behavior, rhashtable and FDB lifetime, and the practical constraints of memory allocation inside kernel locking paths.
 
-## Security work
+[Mainline commit](https://github.com/torvalds/linux/commit/599d0e97610f09162d84c4ede4164628c066921e) · [Netdev series](https://lore.kernel.org/netdev/20261014123814.388557-1-alishmery18@gmail.com/) · [Upstream changes](UPSTREAM.md)
 
-These are a few of the issues I can point to with maintainer records, not a list of everything I've reported.
+## Vulnerability research
 
-**OpenSSL, QUIC anti-amplification accounting.** [CVE-2026-35191](https://openssl-library.org/news/vulnerabilities/)
+**[OpenSSL - CVE-2026-35191](https://openssl-library.org/news/secadv/20260929.txt)**  
+QUIC amplification accounting. With address validation disabled, a coalesced datagram could contribute its full length to the unvalidated-send budget more than once. This broke the RFC 9000 amplification bound in the affected server configuration. [OpenSSL security record](https://openssl-library.org/news/vulnerabilities/).
 
-With address validation disabled, a QUIC server could overcount the unvalidated credit earned from a UDP datagram carrying multiple packets. That makes the RFC 9000 3x amplification limit unreliable under the affected configuration. [OpenSSL's advisory](https://openssl-library.org/news/secadv/20260929.txt) credits my report of 13 June 2026 and an independent report from Nikolas Gauder in August. Neil Horman wrote the fix. This is a protocol accounting bug, not a TLS primitive break.
+**[Cloudflare Pingora - CVE-2026-105299](https://github.com/cloudflare/pingora/security/advisories/GHSA-vx4q-2c55-cvmg)**  
+An HTTP/1 proxy chain could carry client-controlled `Connection` header nominations across a trust boundary. A later intermediary could remove a header used by the origin for access control. The issue lies in hop-by-hop header processing and the assumptions made between proxies. [RustSec](https://rustsec.org/advisories/RUSTSEC-2026-0390.html).
 
-**Chrome DevTools MCP, path validation after an incomplete fix.** [CVE-2026-106484](https://github.com/CVEProject/cvelistV5/blob/main/cves/2026/106xxx/CVE-2026-106484.json) / [GHSA-5hw5-4q87-m6x9](https://github.com/ChromeDevTools/chrome-devtools-mcp/security/advisories/GHSA-5hw5-4q87-m6x9)
+**[zlib - CVE-2026-85091](https://www.cve.org/CVERecord?id=CVE-2026-85091)**  
+Heap corruption in the gzip write path after a nonblocking output stall. Buffer state retained by `gz_vacate()` could make a later formatted write reach an out-of-bounds `memmove`. [Technical report](https://gist.github.com/thesmartshadow/e0b9481792afb7c31e86fee1ff084490) · [Ubuntu security update](https://ubuntu.com/security/notices/USN-8954-1).
 
-The server checked an output path against MCP roots, changed the file extension, then wrote to the new path without checking where it resolved. A symlink on the rewritten path could take the write outside the permitted roots. The reproducer exercised the real MCP path, not just an isolated helper. Chrome CNA published the CVE; the fix shipped in `chrome-devtools-mcp` 1.5.0.
+**[vm2 - CVE-2026-92956](https://github.com/advisories/GHSA-wjwh-qqvp-g4p4)**  
+Sandbox escape involving host-realm Promise behavior exposed through WebAssembly streaming on Node.js 26. The `Promise.prototype.finally` and `Symbol.species` path allowed sandbox code to recover capabilities outside the intended realm.
 
-**zlib, gzip write buffer handling.** [CVE-2026-85091](https://ubuntu.com/security/notices/USN-8954-1)
+**[Chrome DevTools MCP - CVE-2026-106484](https://github.com/ChromeDevTools/chrome-devtools-mcp/security/advisories/GHSA-5hw5-4q87-m6x9)**  
+MCP root restrictions were applied before an output path was rewritten. The final write could follow a symlink outside the approved roots because the transformed destination was not checked again. [Chrome CNA record](https://github.com/CVEProject/cvelistV5/blob/main/cves/2026/106xxx/CVE-2026-106484.json).
 
-A stalled write could leave stale buffer state in the gzip output path. A later formatted write could reach an out-of-bounds `memmove` in `gz_vacate()`. [Ubuntu's security notice](https://ubuntu.com/security/notices/USN-8954-1) credits the discovery and records affected distribution packages. My [proposed upstream patch](https://github.com/madler/zlib/pull/1317) was closed without merge.
+**[Gitea - CVE-2026-89430](https://github.com/go-gitea/gitea/security/advisories/GHSA-hcgw-r9gf-8mph)**  
+Push-mirror destinations were checked against host policy at configuration time but not at synchronization. DNS changes between those points could redirect `git push` to internal Git services and enable forced reference updates where the destination allowed writes. [Release notes](https://blog.gitea.com/release-of-28.0.0/).
 
-**Cloudflare Pingora, `Connection` header handling.** [CVE-2026-105299](https://github.com/cloudflare/pingora/security/advisories/GHSA-vx4q-2c55-cvmg)
+**[rust-openssl - CVE-2026-45784](https://github.com/rust-openssl/rust-openssl/security/advisories/GHSA-phqj-4mhp-q6mq)**  
+An incomplete buffer-sizing fix in `CipherCtxRef::cipher_update_inplace` left an out-of-bounds write reachable with AES key-wrap-with-padding and non-aligned input. The flaw is in the Rust bindings, separate from the OpenSSL QUIC issue.
 
-In a particular chained HTTP/1 proxy arrangement, client-nominated hop-by-hop headers could strip a header the downstream service relied on for authorization. The issue depends on that deployment and trust relationship. Cloudflare's [advisory](https://github.com/cloudflare/pingora/security/advisories/GHSA-vx4q-2c55-cvmg)
+**[libheif - CVE-2026-62291](https://github.com/strukturag/libheif/security/advisories/GHSA-xpw3-9rhw-482x)**  
+An encoder allocation derived from primary-image dimensions was used while copying an auxiliary image plane with different dimensions. The inconsistency produced a heap out-of-bounds write. [Ubuntu USN-8683-1](https://ubuntu.com/security/notices/USN-8683-1) · [USN-8774-1](https://ubuntu.com/security/notices/USN-8774-1).
 
-**vm2, Node.js sandbox escape.** [CVE-2026-92956](https://github.com/advisories/GHSA-wjwh-qqvp-g4p4)
+**[Hickory DNS - CVE-2026-93657](https://github.com/advisories/GHSA-5j98-2g5x-46v6)**  
+DNSSEC verification failures could be lost across resolver lookup interfaces, allowing a failed authentication result to be returned as ordinary resolved data.
 
-A host-realm Promise exposed by a WebAssembly streaming path could cross vm2's sandbox boundary through `finally` and `Symbol.species` handling. Reproduced under the affected Node.js 26
-**Memory safety in rust-openssl and libheif.** [CVE-2026-45784](https://github.com/advisories/GHSA-phqj-4mhp-q6mq) / [CVE-2026-62291](https://github.com/strukturag/libheif/security/advisories/GHSA-xpw3-9rhw-482x)
+**[CoreDNS - CVE-2026-32936](https://github.com/coredns/coredns/security/advisories/GHSA-63cw-r7xf-jmwr)**  
+The DoH GET path spent CPU and memory decoding and parsing attacker-controlled inputs before enforcing request limits. The order of operations made unauthenticated work amplification possible.
 
-The first is an out-of-bounds write in the Rust OpenSSL binding's `CipherCtxRef::cipher_update_inplace` path for AES-KW-PAD. It is separate from the OpenSSL QUIC report. The second is a heap out-of-bounds write in libheif's uncompressed encoder caused by inconsistent component-plane dimensions. Ubuntu credits my libheif report in [USN-8683-1](https://ubuntu.com/security/notices/USN-8683-1) and [USN-8774-1](https://ubuntu.com/security/notices/USN-8774-1).
+**[cpp-httplib - CVE-2026-28435](https://github.com/yhirose/cpp-httplib/security/advisories/GHSA-xvfx-w463-6fpp)**  
+Streaming request readers checked compressed input against `set_payload_max_length()` without applying that limit to decompressed output. Small gzip bodies could expand beyond the configured cap.
 
-Other reports include [CoreDNS](https://github.com/coredns/coredns/security/advisories/GHSA-63cw-r7xf-jmwr) (DoH resource amplification), [cpp-httplib](https://github.com/yhirose/cpp-httplib/security/advisories/GHSA-xvfx-w463-6fpp) (gzip payload limit bypass), [CISA manage.get.gov](https://github.com/cisagov/manage.get.gov/security/advisories/GHSA-hfq4-89cf-8p8j) (organization-member authorization), [xmldom](https://github.com/xmldom/xmldom/security/advisories/GHSA-wh4c-j3r5-mjhp) (CDATA serialization), and [fasthttp](https://pkg.go.dev/vuln/GO-2026-4950) (double-decoded file paths). The fasthttp report has a Go vulnerability ID and a maintainer fix
+**[fasthttp - GO-2026-4950](https://pkg.go.dev/vuln/GO-2026-4950)**  
+A second path-decoding step in file-serving helpers changed the path after application authorization checks. Double-encoded filenames could resolve to resources the application had already denied. [Upstream fix](https://github.com/valyala/fasthttp/pull/2163).
 
-The rest is in the [research index](RESEARCH-INDEX.md).
+**[uutils coreutils - CVE-2026-93658](https://github.com/uutils/coreutils/security/advisories/GHSA-cgg3-923w-v53m)**  
+The `install` path could leave privileged mode bits on a file when ownership changes failed. The security-sensitive order is ownership first, then mode; reversing it crosses a privilege boundary in filesystem metadata.
 
-## Upstream changes
+**[cilium/ebpf - CVE-2026-10722](https://www.cve.org/CVERecord?id=CVE-2026-10722)**  
+Integer overflow in BTF collection parsing could trigger excessive allocation or failure while loading a crafted eBPF spec. The relevant boundary is the parser's allocation arithmetic before a trusted program representation exists.
 
-Code or documentation I authored that was merged, with the change itself linked:
+**[RustFS - CVE-2026-39360](https://github.com/advisories/GHSA-mx42-j6wv-px98)**  
+A multipart copy authorized the destination-side operation without consistently checking access to the source object. The gap exposed data across bucket or tenant boundaries.
 
-| Upstream | Change |
-| --- | --- |
-| [Linux, `599d0e97610f`](https://github.com/torvalds/linux/commit/599d0e97610f09162d84c4ede4164628c066921e) | Validate nested VXLAN VNI entries before dispatch |
-| [RubyGems #9493](https://github.com/ruby/rubygems/pull/9493) | Keep extraction inside its destination when existing symlinks are present |
-| [CEL-Go #1302](https://github.com/cel-expr/cel-go/pull/1302) | Check source expression size before constructing the source |
-| [Google zx #1349](https://github.com/google/zx/pull/1349) | Stop `--prefer-local` cleanup from deleting an external `node_modules` directory |
-| [Akamai CLI #227](https://github.com/akamai/cli/pull/227) | Validate command names before using them in output paths |
-| [Ruby JSON #948](https://github.com/ruby/json/pull/948) | Reject negative generator depth |
-| [Google HumanIO #4](https://github.com/google/humanio/pull/4) | Remove source exposure and hard-coded token handling |
-| [httparse #217](https://github.com/seanmonstar/httparse/pull/217) | Document repeated `Partial` parsing hazards (documentation) |
+**[CISA manage.get.gov - GHSA-hfq4-89cf-8p8j](https://github.com/cisagov/manage.get.gov/security/advisories/GHSA-hfq4-89cf-8p8j)**  
+A view-only organization member could reach privileged member-management operations through an authorization gap in the application workflow. [Remediation](https://github.com/cisagov/manage.get.gov/pull/5049).
 
-## Distribution and vendor response
+**[xmldom - CVE-2026-34601](https://github.com/xmldom/xmldom/security/advisories/GHSA-wh4c-j3r5-mjhp)**  
+CDATA serialization failed to preserve the text boundary when supplied content contained a terminator. The output could change the structure of the resulting XML document, with downstream exposure in IBM products using the affected dependency.
 
-Some of the reports have reached security updates for systems people actually run:
+[Full research index](RESEARCH.md)
 
-- **Ubuntu:** [OpenSSL, USN-8847-1](https://ubuntu.com/security/notices/USN-8847-1); [zlib, USN-8954-1](https://ubuntu.com/security/notices/USN-8954-1); [libheif, USN-8683-1](https://ubuntu.com/security/notices/USN-8683-1) and [USN-8774-1](https://ubuntu.com/security/notices/USN-8774-1); [Rack, USN-8066-1](https://ubuntu.com/security/notices/USN-8066-1).
-- **Debian:** [OpenSSL, DSA-6531-1](https://lists.debian.org/debian-security-announce/2026/msg00444.html) and [Rack, DSA-6180-1](https://lists.debian.org/debian-security-announce/2026/msg00089.html).
-- **SUSE:** [OpenSSL security update](https://www.suse.com/support/update/announcement/2026/suse-su-202624245-1/). Other findings also appear in SUSE's product-specific CVE records.
-- **IBM / Red Hat:** IBM issued [Cloud Pak](https://www.ibm.com/support/pages/security-bulletin-automation-assets-ibm-cloud-pak-integration-vulnerable-vulnerability-xmldom) and [Maximo](https://www.ibm.com/support/pages/security-bulletin-ibm-maximo-application-suite-visual-inspection-component-uses-xmldom-which-vulnerable-cve-2026-34601) bulletins for the xmldom issue; [Red Hat tracks the CVE](https://access.redhat.com/security/cve/cve-2026-34601).
+## Upstream patches
 
-I keep the [source record](EVIDENCE-REGISTER.md) separate because a distribution notice, a CVE tracker entry and a merged upstream patch are different things.
+- [RubyGems #9493](https://github.com/ruby/rubygems/pull/9493) - prevent archive extraction from following pre-existing symlinks outside `destination_dir`; regression coverage.
+- [Google zx #1349](https://github.com/google/zx/pull/1349) - fix `--prefer-local` cleanup so an external `node_modules` target is not removed.
+- [CEL-Go #1302](https://github.com/cel-expr/cel-go/pull/1302) - enforce expression-size limits before constructing the source buffer.
+- [Akamai CLI #227](https://github.com/akamai/cli/pull/227) - validate command names before deriving filesystem output paths.
+- [Ruby JSON #948](https://github.com/ruby/json/pull/948) - reject negative nesting depth in the native generator.
+- [Google HumanIO #4](https://github.com/google/humanio/pull/4) - prevent server-source exposure and remove embedded service credentials.
 
-## Contact
+[Patch details](UPSTREAM.md)
 
-[GitHub](https://github.com/thesmartshadow) / [HackerOne](https://hackerone.com/thesmartshadow) / [LinkedIn](https://www.linkedin.com/in/ali-shmery/) / [Research site](https://thesmartshadow.dev/)
+## Downstream security response
+
+Selected distribution advisories, released package fixes, and vendor security assessments:
+
+- **OpenSSL** - [OpenSSL advisory](https://openssl-library.org/news/secadv/20260929.txt), [Ubuntu](https://ubuntu.com/security/notices/USN-8847-1), [Debian](https://lists.debian.org/debian-security-announce/2026/msg00444.html), [SUSE](https://www.suse.com/support/update/announcement/2026/suse-su-202624245-1/).
+- **zlib** - [Ubuntu USN-8954-1](https://ubuntu.com/security/notices/USN-8954-1), [Debian](https://security-tracker.debian.org/tracker/CVE-2026-85091).
+- **libheif** - [Ubuntu USN-8683-1](https://ubuntu.com/security/notices/USN-8683-1), [USN-8774-1](https://ubuntu.com/security/notices/USN-8774-1).
+- **Rack** - [Ubuntu USN-8066-1](https://ubuntu.com/security/notices/USN-8066-1), [Debian DSA-6180-1](https://lists.debian.org/debian-security-announce/2026/msg00089.html).
+- **xmldom** - [IBM Cloud Pak for Integration](https://www.ibm.com/support/pages/security-bulletin-automation-assets-ibm-cloud-pak-integration-vulnerable-vulnerability-xmldom), [IBM Maximo Application Suite](https://www.ibm.com/support/pages/security-bulletin-ibm-maximo-application-suite-visual-inspection-component-uses-xmldom-which-vulnerable-cve-2026-34601), [Red Hat](https://access.redhat.com/security/cve/cve-2026-34601).
+- **rust-openssl** - [Red Hat](https://access.redhat.com/security/cve/cve-2026-45784), [SUSE](https://www.suse.com/security/cve/CVE-2026-45784.html).
+
+[Research](RESEARCH.md) · [Upstream](UPSTREAM.md) · [HackerOne](https://hackerone.com/thesmartshadow) · [Website](https://thesmartshadow.dev)
